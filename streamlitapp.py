@@ -1,6 +1,6 @@
 from src.services.guidance_server import (
     get_companies,
-    get_company_guidance_periods,
+    get_company_transcript_periods,
     get_company_guidance,
 )
 import streamlit as st
@@ -22,6 +22,7 @@ if "initial" not in st.session_state:
     st.session_state["initial"] = True
     st.session_state["company"] = ""
     st.session_state["guidance"] = []
+    st.session_state["period"] = {"year": None, "quarter": None}
 
 
 companies = get_companies()
@@ -29,14 +30,16 @@ companies = get_companies()
 col1, col2 = st.columns(2)
 
 with col1:
-    company_options = st.selectbox("Select a Ticker", companies, key="company")
+    company_options = st.selectbox("Select a Ticker", companies, index=0, key="company")
 
 
-def set_period():
+def set_period_and_get_guidance():
     year = st.session_state.period["year"]
     quarter = st.session_state.period["quarter"]
 
-    guidance = get_company_guidance(st.session_state.company, year, quarter)
+    guidance = get_company_guidance(
+        st.session_state.company, transcriptQuarter=quarter, transcriptYear=year
+    )
     st.session_state.guidance = guidance
 
     st.session_state["guidance_grid_visible"] = True
@@ -44,15 +47,23 @@ def set_period():
 
 with col2:
     if st.session_state.company != "":
-        periods = get_company_guidance_periods(st.session_state.company)
+        periods = get_company_transcript_periods(st.session_state.company)
         period_options = st.selectbox(
             "Select a Period",
             periods,
             key="period",
-            on_change=set_period,
+            index=0,
+            on_change=set_period_and_get_guidance,
             format_func=lambda p: str(p["year"])
             + (f' Q{p.get("quarter")}' if p["quarter"] is not None else ""),
         )
+
+if (
+    st.session_state.company != ""
+    and st.session_state.period["year"] is not None
+    and st.session_state.period["quarter"] is not None
+):
+    set_period_and_get_guidance()
 
 
 def iso_date_to_date(iso_timestamp):
@@ -65,7 +76,7 @@ def sortGuidance(guidance) -> (dict, list[str]):
     reportDates = set()
     catDict = {}
     for g in guidance:
-        reportDates.add(g["reportDate"])
+        reportDates.add(g["transcriptPeriod"]["reportDate"])
         if g["valueCategory"] not in catDict:
             catDict[g["valueCategory"]] = []
         catDict[g["valueCategory"]].append(g)
@@ -116,6 +127,10 @@ if "guidance" in st.session_state and st.session_state.guidance is not None:
             dict_guidance.append(
                 {
                     "Line Item": g["lineItem"],
+                    "Period": "Q"
+                    + str(g["transcriptPeriod"]["fiscalQuarter"])
+                    + " "
+                    + str(g["transcriptPeriod"]["fiscalYear"]),
                     "Low": get_and_format_val(g, "low"),
                     "Midpoint": get_and_format_val(g, "mid"),
                     "High": get_and_format_val(g, "high"),
