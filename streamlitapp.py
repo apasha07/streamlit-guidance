@@ -16,37 +16,33 @@ st.title("Sequent")
 st.subheader("Guidance")
 st.divider()
 
-
 # Store the initial value of widgets in session state
-if "initial" not in st.session_state:
-    st.session_state["initial"] = True
-    st.session_state["company"] = ""
-    st.session_state["guidance"] = []
-    st.session_state["period"] = {"year": None, "quarter": None}
+if "tickers" not in st.session_state:
+    st.session_state.tickers = get_companies()
 
-
-companies = get_companies()
 
 col1, col2 = st.columns(2)
 
 with col1:
-    company_options = st.selectbox("Select a Ticker", companies, index=0, key="company")
+    if st.session_state.tickers is not None:
+        st.selectbox(
+            label="Select a Ticker",
+            options=st.session_state["tickers"],
+            key="company",
+        )
 
 
 def set_period_and_get_guidance():
     year = st.session_state.period["year"]
     quarter = st.session_state.period["quarter"]
 
-    guidance = get_company_guidance(
+    st.session_state.guidance = get_company_guidance(
         st.session_state.company, transcriptQuarter=quarter, transcriptYear=year
     )
-    st.session_state.guidance = guidance
-
-    st.session_state["guidance_grid_visible"] = True
 
 
 with col2:
-    if st.session_state.company != "":
+    if st.session_state.company:
         periods = get_company_transcript_periods(st.session_state.company)
         period_options = st.selectbox(
             "Select a Period",
@@ -67,7 +63,6 @@ if (
 
 
 def iso_date_to_date(iso_timestamp):
-    # return  datetime.fromisoformat(iso_timestamp).date().isoformat()
     return iso_timestamp.split("T")[0]
 
 
@@ -112,7 +107,7 @@ def get_and_format_val(g: dict, type: str):
         return str(value_formatted) + f" {unit_formatted}"
 
 
-if "guidance" in st.session_state and st.session_state.guidance is not None:
+if "guidance" in st.session_state:
     sortedGuidance, reportDates = sortGuidance(st.session_state.guidance)
 
     guidance_categories = sorted(
@@ -144,4 +139,3 @@ if "guidance" in st.session_state and st.session_state.guidance is not None:
         # TODO: last_revision, previous guidance
 
     st.write(f"Report Date(s): ", "".join(list(map(iso_date_to_date, reportDates))))
-    # st.write(sortedGuidance)
