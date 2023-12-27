@@ -5,7 +5,6 @@ from src.services.guidance_server import (
 )
 from src.formatters import (
     fmt_guidance_period,
-    fmt_value,
     get_value,
     sortGuidance,
 )
@@ -131,6 +130,3 @@ if "guidance" in st.session_state:
         st.dataframe(guidance_df, column_config=col_config)
 
         # TODO: last_revision, previous guidance
-
-print(st.session_state)
-

@@ -16,7 +16,7 @@ def sortGuidance(guidance) -> (dict, list[str]):
 
 def fmt_value(value, unit):
     unit = unit.lower()
-    unit_format = {"percent": "%", "percentage": "%", "dollars": "$", "USD": "$"}
+    unit_format = {"percent": "%", "percentage": "%", "dollars": "$", "usd": "$"}
     if value == "None" or value is None:
         return None
 
