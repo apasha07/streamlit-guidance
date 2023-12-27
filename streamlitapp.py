@@ -3,12 +3,18 @@ from src.services.guidance_server import (
     get_company_transcript_periods,
     get_company_guidance,
 )
+from src.formatters import (
+    fmt_guidance_period,
+    fmt_value,
+    get_value,
+    sortGuidance,
+)
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from humanize import intword
 
-# st.set_page_config(layout="wide")
+
+st.set_page_config(layout="wide")
 
 st.divider()
 
@@ -66,18 +72,6 @@ def iso_date_to_date(iso_timestamp):
     return iso_timestamp.split("T")[0]
 
 
-# actual guidance section
-def sortGuidance(guidance) -> (dict, list[str]):
-    reportDates = set()
-    catDict = {}
-    for g in guidance:
-        reportDates.add(g["transcriptPeriod"]["reportDate"])
-        if g["valueCategory"] not in catDict:
-            catDict[g["valueCategory"]] = []
-        catDict[g["valueCategory"]].append(g)
-    return catDict, list(reportDates)
-
-
 value_cat_to_label = {
     "unknown": "Other",
     "financial": "Financial",
@@ -85,30 +79,13 @@ value_cat_to_label = {
     "nonRecurring": "Non-Recurring",
 }
 
+
 priority = ["financial", "keyMetrics", "nonRecurring", "unknown"]
-
-
-def get_and_format_val(g: dict, type: str):
-    value = g.get("value", {}).get(type, {}).get("amt", None)
-    unit = g.get("value", {}).get(type, {}).get("unit", "")
-
-    unit_format = {"percent": "%", "dollars": "$", "USD": "$"}
-
-    is_number = isinstance(value, (int))
-    if not is_number:
-        return None
-
-    value_formatted = value if value < 100 else intword(value)
-    unit_formatted = unit_format.get(unit, unit)
-
-    if unit_formatted == "$":
-        return unit_formatted + str(value_formatted)
-    else:
-        return str(value_formatted) + f" {unit_formatted}"
-
 
 if "guidance" in st.session_state:
     sortedGuidance, reportDates = sortGuidance(st.session_state.guidance)
+
+    st.write(f"Earnings Call Date: ", "".join(list(map(iso_date_to_date, reportDates))))
 
     guidance_categories = sorted(
         sortedGuidance.keys(),
@@ -119,23 +96,41 @@ if "guidance" in st.session_state:
 
         dict_guidance = []
         for g in sortedGuidance[cat]:
+            formatted_values = get_value(g['value'])
             dict_guidance.append(
                 {
                     "Line Item": g["lineItem"],
-                    "Period": "Q"
-                    + str(g["transcriptPeriod"]["fiscalQuarter"])
-                    + " "
-                    + str(g["transcriptPeriod"]["fiscalYear"]),
-                    "Low": get_and_format_val(g, "low"),
-                    "Midpoint": get_and_format_val(g, "mid"),
-                    "High": get_and_format_val(g, "high"),
-                    "Other": getattr(getattr(g, "qualitative", None), "value", None),
+                    "Period": fmt_guidance_period(g),
+                    "Low": formatted_values.get("low", None),
+                    "Midpoint": formatted_values.get("mid", None),
+                    "High": formatted_values.get("high", None),
                     "Source": g["rawTranscriptSourceSentence"],
                 }
             )
+
+        col_config = {
+            "Line Item": st.column_config.TextColumn(
+                "Line Item",
+                help="Streamlit **widget** commands 🎈",
+                default="st.",
+                max_chars=50
+            ),
+            "Source": st.column_config.TextColumn(
+                "Source",
+                help="Streamlit **widget** commands 🎈",
+                default="st.",
+                width=None
+            )
+        }
         guidance_df = pd.DataFrame.from_dict(dict_guidance)
-        st.write(guidance_df)
+        guidance_df.set_index("Line Item", inplace=True)
+        # guidance_df_styled = guidance_df.style.set_properties(**{
+        #     'width': '50px',
+        #     'white-space': 'normal'
+        # })
+        st.dataframe(guidance_df, column_config=col_config)
 
         # TODO: last_revision, previous guidance
 
-    st.write(f"Report Date(s): ", "".join(list(map(iso_date_to_date, reportDates))))
+print(st.session_state)
+
