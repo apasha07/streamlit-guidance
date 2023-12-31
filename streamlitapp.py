@@ -104,19 +104,26 @@ if "guidance" in st.session_state:
                     "Midpoint": formatted_values.get("mid", None),
                     "High": formatted_values.get("high", None),
                     "Source": g["rawTranscriptSourceSentence"],
+                    "Source Paragraph": g["rawTranscriptSourceParagraph"],
                 }
             )
 
         col_config = {
             "Line Item": st.column_config.TextColumn(
                 "Line Item",
-                help="Streamlit **widget** commands 🎈",
+                help="",
                 default="st.",
                 max_chars=50
             ),
             "Source": st.column_config.TextColumn(
                 "Source",
-                help="Streamlit **widget** commands 🎈",
+                help="Double click to expand",
+                default="st.",
+                width=None
+            ),
+            "Source Paragraph": st.column_config.TextColumn(
+                "Source Paragraph",
+                help="Double click to expand",
                 default="st.",
                 width=None
             )
