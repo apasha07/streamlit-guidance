@@ -50,7 +50,7 @@ with col2:
     if st.session_state.company:
         periods = get_company_transcript_periods(st.session_state.company)
         period_options = st.selectbox(
-            "Select a Period",
+            "Select an Earnings Call",
             periods,
             key="period",
             index=0,
