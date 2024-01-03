@@ -27,7 +27,9 @@ def get_company_transcript_periods(ticker) -> Any:
     """
     url = f"{GUIDANCE_SERVER_URL}/api/v1/guidance/transcripts/{ticker}"
     response = requests.get(url)
-    return response.json()["transcriptPeriods"]
+    response = response.json()["transcriptPeriods"]
+    sorted_response = sorted(response, key=lambda x: (x["year"], x["quarter"]))    
+    return sorted_response
 
 
 def get_company_guidance(
