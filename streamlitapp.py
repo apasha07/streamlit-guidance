@@ -20,6 +20,7 @@ st.divider()
 st.title("Sequent")
 st.subheader("Guidance")
 st.divider()
+st.experimental_set_query_params()
 
 # Store the initial value of widgets in session state
 if "tickers" not in st.session_state:
@@ -90,12 +91,17 @@ if "guidance" in st.session_state:
         sortedGuidance.keys(),
         key=lambda x: priority.index(x) if x in priority else 1000,
     )
+    # link = f"http://localhost:8502/transcripts?company={st.session_state.company}&year={st.session_state.period['year']}&quarter={st.session_state.period['quarter']}#:~:text="
     for cat in guidance_categories:
         st.subheader(value_cat_to_label.get(cat, cat))
 
         dict_guidance = []
         for g in sortedGuidance[cat]:
             formatted_values = get_value(g['value'])
+            # Generate a link to the transcript page
+            highlighted_words = '%20'.join(g['rawTranscriptSourceSentence'].split(' '))
+            # transcript_link = link + highlighted_words
+
             dict_guidance.append(
                 {
                     "Line Item": g["lineItem"],
@@ -105,6 +111,7 @@ if "guidance" in st.session_state:
                     "High": formatted_values.get("high", None),
                     "Source": g["rawTranscriptSourceSentence"],
                     "Source Paragraph": g["rawTranscriptSourceParagraph"],
+                    # "Transcript Link": transcript_link
                 }
             )
 
@@ -126,14 +133,30 @@ if "guidance" in st.session_state:
                 help="Double click to expand",
                 default="st.",
                 width=None
+            # ),
+            # "Transcript Link": st.column_config.LinkColumn(
+            #     help="Link to transcript section",
+            #     default='st.',
+            #     width=None
             )
         }
-        guidance_df = pd.DataFrame.from_dict(dict_guidance)
-        guidance_df.set_index("Line Item", inplace=True)
-        # guidance_df_styled = guidance_df.style.set_properties(**{
-        #     'width': '50px',
-        #     'white-space': 'normal'
-        # })
-        st.dataframe(guidance_df, column_config=col_config)
+        
+
+    guidance_df = pd.DataFrame.from_dict(dict_guidance)
+    guidance_df.set_index("Line Item", inplace=True)
+
+    # Create a download button and provide the CSV string as the file to download
+    csv = guidance_df.to_csv().encode('utf-8')
+    st.download_button(
+        label="Download Guidance Data as CSV",
+        data=csv,
+        file_name=f"{st.session_state.company}_{st.session_state.period['year']}_Q{st.session_state.period['quarter']}_guidance_data.csv",
+        mime="text/csv",
+    )
+    # guidance_df_styled = guidance_df.style.set_properties(**{
+    #     'width': '50px',
+    #     'white-space': 'normal'
+    # })
+    st.dataframe(guidance_df, column_config=col_config)
 
         # TODO: last_revision, previous guidance
